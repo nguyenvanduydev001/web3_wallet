@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="./metamask.ico" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>Web3 Wallet Connect</title>
+  </head>
+  <body>
+    <div class="container">
+      <h1>WalletConnect</h1>
+      <p class="subtitle">Introducing Web3 Connect WalletConnect</p>
+
+      <button id="connect-button" class="connect-button">
+        Connect MetaMask
+      </button>
+
+      <div class="circle-image">
+        <img id="metamask-logo" src="./Metamask.png" alt="MetaMask Logo" />
+      </div>
+
+      <div id="wallet-info" class="wallet-info"></div>
+      <div id="balance" class="balance"></div>
+    </div>
+
+    <script>
+      document
+        .getElementById("connect-button")
+        .addEventListener("click", async () => {
+          const walletInfo = document.getElementById("wallet-info");
+          const balanceDisplay = document.getElementById("balance");
+          const metamaskLogo = document.getElementById("metamask-logo");
+
+          try {
+            const accounts = await ethereum.request({
+              method: "eth_requestAccounts",
+            });
+            const account = accounts[0];
+            walletInfo.textContent = `Connected: ${account}`;
+
+            const balance = await ethereum.request({
+              method: "eth_getBalance",
+              params: [account, "latest"],
+            });
+
+            metamaskLogo.src = "./Metamask1.png";
+          } catch (error) {
+            console.error(error);
+            walletInfo.textContent = "Failed to connect.";
+          }
+        });
+    </script>
+  </body>
+</html>
