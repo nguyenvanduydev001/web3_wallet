@@ -5,51 +5,177 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="./metamask.ico" />
     <link rel="stylesheet" href="./style.css" />
-    <title>Web3 Wallet Connect</title>
+    <title>Web3 Connect Wallet</title>
   </head>
   <body>
     <div class="container">
-      <h1>WalletConnect</h1>
-      <p class="subtitle">Introducing Web3 Connect WalletConnect</p>
-
+      <h1>Web3 Connect Wallet</h1>
       <button id="connect-button" class="connect-button">
         Connect MetaMask
       </button>
-
-      <div class="circle-image">
-        <img id="metamask-logo" src="./Metamask.png" alt="MetaMask Logo" />
-      </div>
-
       <div id="wallet-info" class="wallet-info"></div>
       <div id="balance" class="balance"></div>
+
+      <h2>User Management</h2>
+      <button id="open-popup">Add User</button>
+
+      <div class="popup-overlay" id="popup-overlay"></div>
+      <div id="user-popup">
+        <h3>Add/Edit User</h3>
+        <form id="user-form">
+          <input type="text" id="username" placeholder="Username" required />
+          <input type="text" id="email" placeholder="Email" required />
+          <input type="hidden" id="edit-id" />
+          <button type="submit">Save User</button>
+          <button type="button" class="close-btn" onclick="closePopup()">
+            Cancel
+          </button>
+        </form>
+      </div>
+
+      <table id="user-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="user-list"></tbody>
+      </table>
+
+      <div id="pagination-controls">
+        <button id="prev-page">Previous</button>
+        <span id="page-info">Page 1</span>
+        <button id="next-page">Next</button>
+      </div>
     </div>
 
     <script>
       document
         .getElementById("connect-button")
         .addEventListener("click", async () => {
-          const walletInfo = document.getElementById("wallet-info");
-          const balanceDisplay = document.getElementById("balance");
-          const metamaskLogo = document.getElementById("metamask-logo");
-
           try {
             const accounts = await ethereum.request({
               method: "eth_requestAccounts",
             });
-            const account = accounts[0];
-            walletInfo.textContent = `Connected: ${account}`;
-
-            const balance = await ethereum.request({
-              method: "eth_getBalance",
-              params: [account, "latest"],
-            });
-
-            metamaskLogo.src = "./Metamask1.png";
+            document.getElementById(
+              "wallet-info"
+            ).textContent = `Connected: ${accounts[0]}`;
           } catch (error) {
             console.error(error);
-            walletInfo.textContent = "Failed to connect.";
           }
         });
+
+      const users = [];
+      let currentPage = 1;
+      const usersPerPage = 3;
+
+      // Open pop-up modal
+      document.getElementById("open-popup").addEventListener("click", () => {
+        openPopup();
+      });
+
+      // Function to open the pop-up modal
+      function openPopup() {
+        document.getElementById("popup-overlay").style.display = "block";
+        document.getElementById("user-popup").style.display = "block";
+      }
+
+      // Function to close the pop-up modal
+      function closePopup() {
+        document.getElementById("popup-overlay").style.display = "none";
+        document.getElementById("user-popup").style.display = "none";
+        cancelEdit(); // Clear the form inputs
+      }
+
+      document.getElementById("user-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const username = document.getElementById("username").value;
+        const email = document.getElementById("email").value;
+        const editId = document.getElementById("edit-id").value;
+
+        // Prevent duplicate email entries if not editing
+        if (!editId && users.some((user) => user.email === email)) {
+          alert("Email already exists. Please enter a different email.");
+          return;
+        }
+
+        if (editId) {
+          const user = users.find((u) => u.id == editId);
+          user.username = username;
+          user.email = email;
+        } else {
+          users.push({ id: users.length + 1, username, email });
+        }
+
+        renderUsers();
+        closePopup(); // Close the pop-up after saving
+      });
+
+      function renderUsers() {
+        const start = (currentPage - 1) * usersPerPage;
+        const end = start + usersPerPage;
+        const paginatedUsers = users.slice(start, end);
+
+        const userList = document.getElementById("user-list");
+        userList.innerHTML = paginatedUsers
+          .map(
+            (user) => `
+              <tr>
+                <td>${user.id}</td>
+                <td>${user.username}</td>
+                <td>${user.email}</td>
+                <td>
+                  <button onclick="editUser(${user.id})">Edit</button>
+                  <button onclick="deleteUser(${user.id})">Delete</button>
+                </td>
+              </tr>
+            `
+          )
+          .join("");
+
+        document.getElementById(
+          "page-info"
+        ).textContent = `Page ${currentPage}`;
+      }
+
+      function editUser(id) {
+        const user = users.find((u) => u.id === id);
+        document.getElementById("username").value = user.username;
+        document.getElementById("email").value = user.email;
+        document.getElementById("edit-id").value = user.id;
+        openPopup(); // Open the pop-up to edit user
+      }
+
+      function deleteUser(id) {
+        const index = users.findIndex((u) => u.id === id);
+        if (index !== -1) users.splice(index, 1);
+        renderUsers();
+      }
+
+      document.getElementById("prev-page").addEventListener("click", () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderUsers();
+        }
+      });
+
+      document.getElementById("next-page").addEventListener("click", () => {
+        if (currentPage * usersPerPage < users.length) {
+          currentPage++;
+          renderUsers();
+        }
+      });
+
+      function cancelEdit() {
+        document.getElementById("username").value = "";
+        document.getElementById("email").value = "";
+        document.getElementById("edit-id").value = "";
+      }
+
+      renderUsers();
     </script>
   </body>
 </html>
